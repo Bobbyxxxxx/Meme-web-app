@@ -1,0 +1,38 @@
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.App {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: yellow;
+  min-height: 100vh;
+  padding: 20px;
+  gap: 20px;
+}
+
+#canvas {
+  border: 2px solid red;
+  z-index: 2;
+  width: 500px;
+  height: 500px;
+}
+
+.btn {
+  background-color: purple;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.btn:hover {
+  background-color: #6a0dad;
+}
