@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Download, Upload } from "lucide-react";
+import { Download, Upload, Delete } from "lucide-react";
 
 export default function MemeEditor() {
   const [uploadedImage, setUploadedImage] = useState(null);
@@ -8,6 +8,8 @@ export default function MemeEditor() {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const fileInputRef = useRef(null);
   const canvasRef = useRef(null);
+  const [selectedStickerForDelete, setSelectedStickerForDelete] =
+    useState(null);
 
   const stickerEmojis = ["😂", "😎", "🔥", "💯", "👀", "🤣"];
 
@@ -29,13 +31,22 @@ export default function MemeEditor() {
       x: 150,
       y: 150,
       size: 80,
+      rotation: 0,
     };
     setStickers([...stickers, newSticker]);
+  };
+
+  const deleteSticker = () => {
+    if (selectedStickerForDelete) {
+      setStickers(stickers.filter((s) => s.id !== selectedStickerForDelete));
+      setSelectedStickerForDelete(null);
+    }
   };
 
   const handleStickerMouseDown = (e, sticker) => {
     e.stopPropagation();
     setSelectedSticker(sticker.id);
+    setSelectedStickerForDelete(sticker.id);
     const rect = canvasRef.current.getBoundingClientRect();
     setDragOffset({
       x: e.clientX - rect.left - sticker.x,
@@ -72,6 +83,35 @@ export default function MemeEditor() {
       const newSize = Math.max(30, startSize + delta);
       setStickers(
         stickers.map((s) => (s.id === stickerId ? { ...s, size: newSize } : s))
+      );
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  };
+
+  const handleRotate = (e, stickerId) => {
+    e.stopPropagation();
+    const sticker = stickers.find((s) => s.id === stickerId);
+    const stickerElement = e.target.parentElement;
+    const rect = stickerElement.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const onMouseMove = (moveEvent) => {
+      const deltaX = moveEvent.clientX - centerX;
+      const deltaY = moveEvent.clientY - centerY;
+      const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+
+      setStickers(
+        stickers.map((s) =>
+          s.id === stickerId ? { ...s, rotation: angle } : s
+        )
       );
     };
 
@@ -125,10 +165,6 @@ export default function MemeEditor() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-100 p-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold text-center mb-8 text-purple-900">
-          🎨 Meme Editor
-        </h1>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Canvas Section */}
           <div className="lg:col-span-2 bg-white rounded-2xl shadow-xl p-6">
@@ -148,6 +184,18 @@ export default function MemeEditor() {
                 >
                   <Download size={20} />
                   Download
+                </button>
+                <button
+                  onClick={deleteSticker}
+                  disabled={!selectedStickerForDelete}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+                    selectedStickerForDelete
+                      ? "bg-red-600 text-white hover:bg-red-700"
+                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  <Download size={20} />
+                  Delete Sticker
                 </button>
               </div>
             </div>
@@ -192,14 +240,28 @@ export default function MemeEditor() {
                     top: sticker.y,
                     fontSize: `${sticker.size}px`,
                     lineHeight: 1,
+                    transform: `rotate(${sticker.rotation || 0}deg)`,
+                    border:
+                      selectedStickerForDelete === sticker.id
+                        ? "2px dashed red"
+                        : "none",
+                    padding: "4px",
                   }}
                   onMouseDown={(e) => handleStickerMouseDown(e, sticker)}
                 >
                   {sticker.emoji}
+                  {/* Resize handle */}
                   <div
                     className="absolute bottom-0 right-0 w-4 h-4 bg-blue-500 rounded-full cursor-nwse-resize border-2 border-white"
                     onMouseDown={(e) => handleResize(e, sticker.id, "se")}
                     style={{ transform: "translate(50%, 50%)" }}
+                  />
+
+                  {/* Rotate handle - Add this */}
+                  <div
+                    className="absolute top-0 left-1/2 w-4 h-4 bg-green-500 rounded-full cursor-grab border-2 border-white"
+                    onMouseDown={(e) => handleRotate(e, sticker.id)}
+                    style={{ transform: "translate(-50%, -50%)" }}
                   />
                 </div>
               ))}
